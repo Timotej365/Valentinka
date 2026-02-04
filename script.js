@@ -1,23 +1,122 @@
 const backdrop = document.getElementById("backdrop");
+const modal = document.getElementById("modal");
 const openModalBtn = document.getElementById("openModalBtn");
 const closeBtn = document.getElementById("closeBtn");
 const noBtn = document.getElementById("noBtn");
 const buttonsArea = document.getElementById("buttonsArea");
 
-openModalBtn.addEventListener("click", () => backdrop.classList.add("show"));
-closeBtn.addEventListener("click", () => backdrop.classList.remove("show"));
+function openModal() {
+  backdrop.classList.add("show");
+  backdrop.setAttribute("aria-hidden", "false");
+  modal?.setAttribute("tabindex", "-1");
+  modal?.focus?.();
 
-function moveNo(){
-  const r = buttonsArea.getBoundingClientRect();
-  noBtn.style.left = Math.random() * (r.width - 100) + "px";
-  noBtn.style.top = Math.random() * (r.height - 40) + "px";
+  // Nastav štart pozíciu "Nie" mimo "Áno" (hneď po otvorení)
+  setTimeout(() => {
+    if (noBtn && buttonsArea) {
+      noBtn.style.left = "70%";
+      noBtn.style.top = "62%";
+      noBtn.style.transform = "translate(-50%,-50%)";
+    }
+  }, 0);
 }
 
-if (matchMedia("(pointer:fine)").matches){
-  noBtn.addEventListener("mouseenter", moveNo);
-}else{
-  noBtn.addEventListener("pointerdown", e => {
+function closeModal() {
+  backdrop.classList.remove("show");
+  backdrop.setAttribute("aria-hidden", "true");
+}
+
+openModalBtn?.addEventListener("click", openModal);
+closeBtn?.addEventListener("click", closeModal);
+
+// klik mimo modalu zavrie
+backdrop?.addEventListener("click", (e) => {
+  if (e.target === backdrop) closeModal();
+});
+
+// escape zavrie
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && backdrop.classList.contains("show")) closeModal();
+});
+
+// --- UTEKAJÚCE "NIE" ---
+function moveNoButton() {
+  if (!buttonsArea || !noBtn) return;
+
+  const areaRect = buttonsArea.getBoundingClientRect();
+  const btnRect = noBtn.getBoundingClientRect();
+
+  const padding = 12;
+  const maxX = areaRect.width - btnRect.width - padding;
+  const maxY = areaRect.height - btnRect.height - padding;
+
+  if (maxX < 10 || maxY < 10) return;
+
+  const x = padding + Math.random() * maxX;
+  const y = padding + Math.random() * maxY;
+
+  noBtn.style.left = `${x}px`;
+  noBtn.style.top = `${y}px`;
+  noBtn.style.transform = `translate(0,0)`;
+}
+
+const isCoarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches;
+const isFinePointer = window.matchMedia?.("(pointer: fine)")?.matches;
+
+if (isFinePointer) {
+  // PC: uteká pri priblížení
+  noBtn?.addEventListener("mouseenter", moveNoButton);
+
+  buttonsArea?.addEventListener("mousemove", (e) => {
+    const rect = buttonsArea.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const bx = noBtn.offsetLeft + noBtn.offsetWidth / 2;
+    const by = noBtn.offsetTop + noBtn.offsetHeight / 2;
+
+    const dist = Math.hypot(x - bx, y - by);
+    if (dist < 90) moveNoButton();
+  });
+} else {
+  // Mobil: uteká až pri tapnutí
+  noBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-    moveNo();
+    moveNoButton();
+  }, { passive: false });
+
+  noBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    moveNoButton();
   });
 }
+
+// --- Floating hearts generator ---
+const heartsContainer = document.querySelector(".hearts");
+const heartChars = ["💗","💖","💘","💝","💞","💕","❤️"];
+
+function spawnHeart() {
+  if (!heartsContainer) return;
+
+  const heart = document.createElement("div");
+  heart.className = "heart";
+  heart.textContent = heartChars[Math.floor(Math.random() * heartChars.length)];
+
+  const left = Math.random() * 100; // vw
+  const size = 14 + Math.random() * 24; // px
+  const duration = 6 + Math.random() * 6; // s
+  const delay = Math.random() * 1.5; // s
+
+  heart.style.left = `${left}vw`;
+  heart.style.fontSize = `${size}px`;
+  heart.style.animationDuration = `${duration}s`;
+  heart.style.animationDelay = `${delay}s`;
+
+  heartsContainer.appendChild(heart);
+
+  const total = (duration + delay) * 1000;
+  setTimeout(() => heart.remove(), total + 250);
+}
+
+setInterval(spawnHeart, 280);
+for (let i = 0; i < 12; i++) spawnHeart();
